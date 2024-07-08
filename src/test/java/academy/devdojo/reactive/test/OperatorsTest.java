@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -21,6 +23,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class OperatorsTest {
+    @BeforeAll
+    public static void setUp() {
+        BlockHound.install( //Just to remember how to fix if it happens, doesn't have necessity to use
+//                builder -> builder.allowBlockingCallsInside("org.slf4j.impl.SimpleLogger", "write")
+        );
+    }
 
     @Test
     public void subscribeOnSimple() {

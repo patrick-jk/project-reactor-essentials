@@ -1,9 +1,13 @@
 package academy.devdojo.reactive.test;
 
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
 
 /**
  * Reactive Streams
@@ -22,6 +26,25 @@ import reactor.test.StepVerifier;
  */
 @Slf4j
 public class MonoTest {
+
+    @BeforeAll
+    public static void setUp() {
+        BlockHound.install();
+    }
+
+//    @Test //Used to test BlockHound, will throw an exception
+//    public void blockHoundWorks() {
+//        Mono.delay(Duration.ofSeconds(1))
+//                .doOnNext(it -> {
+//                    try {
+//                        Thread.sleep(10);
+//                    } catch (InterruptedException e) {
+//                        throw new RuntimeException(e);
+//                    }
+//                })
+//                .block();
+//    }
+
     @Test
     public void monoSubscriber() {
         String name = "DevDojo Academy";
