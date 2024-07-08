@@ -203,6 +203,27 @@ public class OperatorsTest {
     }
 
     @Test
+    public void concatDelayErrorOperator() {
+        Flux<String> flux1 = Flux.just("a", "b")
+                .handle((s, sink) -> {
+                    if (s.equals("b")) {
+                        sink.error(new IllegalArgumentException());
+                        return;
+                    }
+                    sink.next(s);
+                });
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> concatFlux = Flux.concatDelayError(flux1, flux2).log();
+
+        StepVerifier.create(concatFlux)
+                .expectSubscription()
+                .expectNext("a", "c", "d")
+                .expectError()
+                .verify();
+    }
+
+    @Test
     public void concatWithOperator() {
         Flux<String> flux1 = Flux.just("a", "b");
         Flux<String> flux2 = Flux.just("c", "d");
@@ -265,5 +286,79 @@ public class OperatorsTest {
                 .expectNext("c", "d", "a", "b")
                 .expectComplete()
                 .verify();
+    }
+
+    @Test
+    public void mergeSequentialOperator() {
+        Flux<String> flux1 = Flux.just("a", "b").delayElements(Duration.ofMillis(200));
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> mergeFlux = Flux.mergeSequential(flux1, flux2, flux1)
+                .delayElements(Duration.ofMillis(200))
+                .log();
+
+        StepVerifier.create(mergeFlux)
+                .expectSubscription()
+                .expectNext("a", "b", "c", "d", "a", "b")
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void mergeDelayErrorOperator() {
+        Flux<String> flux1 = Flux.just("a", "b")
+                .<String>handle((s, sink) -> {
+                    if (s.equals("b")) {
+                        sink.error(new IllegalArgumentException());
+                        return;
+                    }
+                    sink.next(s);
+                }).doOnError(t -> log.error("We could do something with this"));
+
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> mergeFlux = Flux.mergeDelayError(1, flux1, flux2, flux1)
+                .log();
+
+        mergeFlux.subscribe(log::info);
+
+        StepVerifier.create(mergeFlux)
+                .expectSubscription()
+                .expectNext("a", "c", "d", "a")
+                .expectError()
+                .verify();
+    }
+
+    @Test
+    public void flatMapOperator() throws Exception {
+        Flux<String> flux = Flux.just("a", "b");
+
+        Flux<String> flatFlux = flux.map(String::toUpperCase)
+                .flatMap(this::findByName)
+                .log();
+
+        StepVerifier.create(flatFlux)
+                .expectSubscription()
+                .expectNext("nameB1", "nameB2", "nameA1", "nameA2")
+                .verifyComplete();
+    }
+
+    @Test
+    public void flatMapSequentialOperator() {
+        Flux<String> flux = Flux.just("a", "b");
+
+        Flux<String> flatFlux = flux.map(String::toUpperCase)
+                .flatMapSequential(this::findByName)
+                .log();
+
+        StepVerifier.create(flatFlux)
+                .expectSubscription()
+                .expectNext("nameA1", "nameA2", "nameB1", "nameB2")
+                .verifyComplete();
+    }
+
+    public Flux<String> findByName(String name) {
+        return name.equals("A") ? Flux.just("nameA1", "nameA2").delayElements(Duration.ofMillis(100)) :
+                Flux.just("nameB1", "nameB2");
     }
 }
